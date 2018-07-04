@@ -50,43 +50,48 @@ public class MainActivity extends AppCompatActivity {
             text.setText("Permission requested");
         } else {
             text.setText("Permission granted");
-            LocationRequest locationRequest= LocationRequest.create();
-            locationRequest.setInterval(10000);
-            locationRequest.setFastestInterval(5000);
-            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
 
 
             FusedLocationProviderClient flpClient =
                     LocationServices.getFusedLocationProviderClient(this);
 
-            LocationCallback callback=new LocationCallback(){
-                @Override
-                public void onLocationResult(LocationResult locationResult) {
-                    super.onLocationResult(locationResult);
-                    for (final Location location : locationResult.getLocations()) {
-                        text.setText(text.getText().toString()+"\n"+locationDesc(location));
-                        Thread t=new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                setMapImage(location);
-                            }
-                        });
-                        t.start();
-                    }
+            getLocation(flpClient);
 
+
+
+        }
+
+    }
+
+    private void getLocation(FusedLocationProviderClient flpClient){
+
+        LocationRequest locationRequest= LocationRequest.create();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        LocationCallback callback=new LocationCallback(){
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                for (final Location location : locationResult.getLocations()) {
+                    text.setText(text.getText().toString()+"\n"+locationDesc(location));
+                    Thread t=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setMapImage(location);
+                        }
+                    });
+                    t.start();
                 }
-            };
+
+            }
+        };
+        try {
             flpClient.requestLocationUpdates(locationRequest, callback, Looper.myLooper());
-            flpClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-                @Override
-                public void onSuccess(Location location) {
-                    if (location==null) return;
-
-                    text.setText(locationDesc(location));
-
-                }
-            });
-
+        } catch(SecurityException ex){
+            ex.printStackTrace();
         }
 
     }
