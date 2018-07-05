@@ -5,10 +5,14 @@ import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -21,6 +25,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.io.InputStream;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -30,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
     ImageView mapView;
     TextView text;
     HashMap<String,Drawable> webCache;
+    SeekBar seekBar;
+
+    int mapZoom = 18;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +48,25 @@ public class MainActivity extends AppCompatActivity {
 
         text = findViewById(R.id.main_text);
         mapView = findViewById(R.id.mapview);
+
+        seekBar = findViewById(R.id.seekBar);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mapZoom = progress+5;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
 
         if (ActivityCompat.checkSelfPermission(this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION) !=
@@ -52,22 +79,28 @@ public class MainActivity extends AppCompatActivity {
             text.setText("Permission granted");
 
 
-
-            FusedLocationProviderClient flpClient =
-                    LocationServices.getFusedLocationProviderClient(this);
-
-            getLocation(flpClient);
-
-
+            getLocation();
 
         }
 
     }
 
-    private void getLocation(FusedLocationProviderClient flpClient){
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_LOCATION_PERMISSION){
+            System.out.println(Arrays.asList(permissions));
+            System.out.println(Arrays.asList(grantResults));
+
+        }
+    }
+
+    private void getLocation(){
+
+        FusedLocationProviderClient flpClient = LocationServices.getFusedLocationProviderClient(this);
 
         LocationRequest locationRequest= LocationRequest.create();
-        locationRequest.setInterval(10000);
+        locationRequest.setInterval(5000);
         locationRequest.setFastestInterval(5000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
@@ -97,10 +130,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setMapImage(Location loc){
-        String mapsUrl="https://maps.googleapis.com/maps/api/staticmap?center=LATITUDE%2c%20LONGITUDE&markers=color:red%7Clabel:o%7CLATITUDE%2c%20LONGITUDE&zoom=18&size=400x400";
+        String mapsUrl="ENDPOINT?center=LATITUDE%2c%20LONGITUDE&markers=color:red%7Clabel:o%7CLATITUDE%2c%20LONGITUDE&zoom=ZOOM&size=400x400&maptype=MAPTYPE";
         final String url = mapsUrl
-                .replace("LATITUDE", String.valueOf(Math.round(loc.getLatitude()*1000)/1000.0d))
-                .replace("LONGITUDE", String.valueOf(Math.round(loc.getLongitude()*1000)/1000.0d));
+                .replace("ENDPOINT", "https://maps.googleapis.com/maps/api/staticmap")
+                .replace("MAPTYPE", "satellite")
+                .replace("ZOOM", String.valueOf(mapZoom))
+                .replace("LATITUDE", String.valueOf(loc.getLatitude()))
+                .replace("LONGITUDE", String.valueOf(loc.getLongitude()));
         final Drawable d=loadImageFromWebOperations(url);
 
         runOnUiThread(new Runnable() {
@@ -116,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         if (location==null){
             return "No location";
         }
-        return String.format("%3.3f : %3.3f (%3.3f) Time:%s",
+        return String.format("%3.5f : %3.5f (%3.3f) Time:%s",
                 (location.getLatitude()),
                 (location.getLongitude()),
                 (location.getAccuracy()),
